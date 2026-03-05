@@ -5,8 +5,9 @@ const app = express();
 
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://localhost:3000",
-  "https://film-receipt.vercel.app", // replace with your actual Vercel URL
+  "https://film-receipt.vercel.app",
 ];
 
 app.use(cors({
@@ -35,7 +36,10 @@ app.post("/api/claude", async (req, res) => {
     });
 
     const data = await response.json();
-    if (!response.ok) return res.status(response.status).json(data);
+    if (!response.ok) {
+      console.error("Anthropic error:", JSON.stringify(data));
+      return res.status(response.status).json(data);
+    }
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

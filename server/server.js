@@ -4,15 +4,13 @@ import cors from "cors";
 const app = express();
 
 const ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:3000",
   "https://film-receipt.vercel.app",
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    // allow all localhost (any port) for local dev
+    if (!origin || origin.startsWith("http://localhost:") || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked: ${origin}`));

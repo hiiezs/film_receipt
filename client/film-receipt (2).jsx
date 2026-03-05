@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
 
+// ─── RESPONSIVE HOOK ─────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return isMobile;
+}
+
 // ─── API KEYS ────────────────────────────────────────────────────────────────
 const TMDB_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2NDdiOWRlZTFkYjU2OGIzZjUxMmQ1YmI5NjNmMWQ0NCIsIm5iZiI6MTc3MjQzNDQwMi4wNzAwMDAyLCJzdWIiOiI2OWE1MzNlMjFjZTA4ZjA4OWE0MThkOWQiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.bJ66RQfu9YwKpH0AMH3Oy1IGQ5rcU8CdOpM6E319Pbs";
 const TMDB_BASE = "https://api.themoviedb.org/3";
@@ -65,9 +76,7 @@ async function getProviders(tmdbId) {
   } catch { return "Check JustWatch"; }
 }
 
-// ─── Claude API (via proxy server) ───────────────────────────────────────────
-// Frontend calls your Render server, which holds the Anthropic key securely.
-// Change this URL to your actual Render server URL after deploying.
+// ─── Claude API (via Render proxy) ───────────────────────────────────────────
 const CLAUDE_SERVER = "https://film-receipt-api.onrender.com/api/claude";
 
 async function askClaude(feeling, exclude = []) {
@@ -239,12 +248,12 @@ function ReceiptPrinter({ movie, printing, receiptKey, savedLines, onSave }) {
 }
 
 // ─── Movie Card ───────────────────────────────────────────────────────────────
-function MovieCard({ movie, active, index, total }) {
+function MovieCard({ movie, active, index, total, isMobile }) {
   const mid = Math.floor(total / 2);
   const [imgError, setImgError] = useState(false);
   return (
     <div style={{
-      position: "absolute", width: 200, height: 300,
+      position: "absolute", width: isMobile ? 200 : 260, height: isMobile ? 300 : 390,
       transform: `translateX(${active ? 0 : (index - mid) * 9}px) rotate(${active ? 0 : (index - mid) * 3}deg) scale(${active ? 1 : 0.91})`,
       transition: "all 0.5s cubic-bezier(0.34,1.56,0.64,1)",
       zIndex: active ? 10 : 5 - Math.abs(index - mid),
@@ -275,11 +284,11 @@ function MovieCard({ movie, active, index, total }) {
 }
 
 // ─── Search Bar ───────────────────────────────────────────────────────────────
-function SearchBar({ onSearch, loading }) {
+function SearchBar({ onSearch, loading, isMobile }) {
   const [val, setVal] = useState("");
   const submit = () => { if (val.trim()) onSearch(val.trim()); };
   return (
-    <div style={{ width: "100%", maxWidth: 420, marginTop: 24 }}>
+    <div style={{ width: "100%", maxWidth: isMobile ? 420 : 600, marginTop: 24 }}>
       <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: 3, color: "#aaa", textAlign: "center", marginBottom: 8 }}>
         — OR DESCRIBE A SPECIFIC FEELING —
       </div>
@@ -306,6 +315,7 @@ function SearchBar({ onSearch, loading }) {
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
+  const isMobile = useIsMobile();
   const [screen, setScreen] = useState("mood");
   const [selectedMood, setSelectedMood] = useState(null);
   const [movies, setMovies] = useState([]);
@@ -427,16 +437,16 @@ return;
 
   // ── MOOD SCREEN ──────────────────────────────────────────────────────────────
   if (screen === "mood") return (
-    <div style={{ minHeight: "100vh", background: "#f5f0e8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Georgia',serif", backgroundImage: "radial-gradient(circle at 20% 20%,rgba(255,200,100,0.1) 0%,transparent 60%),radial-gradient(circle at 80% 80%,rgba(200,100,100,0.08) 0%,transparent 60%)" }}>
-      <div style={{ textAlign: "center", marginBottom: 36 }}>
+    <div style={{ minHeight: "100vh", width: "100%", boxSizing: "border-box", background: "#f5f0e8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: isMobile ? 24 : 48, fontFamily: "'Georgia',serif", backgroundImage: "radial-gradient(circle at 20% 20%,rgba(255,200,100,0.1) 0%,transparent 60%),radial-gradient(circle at 80% 80%,rgba(200,100,100,0.08) 0%,transparent 60%)" }}>
+      <div style={{ textAlign: "center", marginBottom: 36, width: "100%" }}>
         <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: 6, color: "#bbb", marginBottom: 10 }}>✦ FILM RECEIPT ✦</div>
-        <h1 style={{ fontSize: 40, fontWeight: 700, color: "#1a1a1a", margin: 0, lineHeight: 1.1, letterSpacing: -1 }}>
+        <h1 style={{ fontSize: isMobile ? 40 : 56, fontWeight: 700, color: "#1a1a1a", margin: 0, lineHeight: 1.1, letterSpacing: -1 }}>
           How are you<br /><span style={{ color: "#c00", fontStyle: "italic" }}>feeling</span> today?
         </h1>
         <div style={{ width: 60, height: 3, background: "#c00", margin: "14px auto 0", borderRadius: 2 }} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, maxWidth: 420, width: "100%" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(6,1fr)", gap: 10, maxWidth: isMobile ? 420 : 780, width: "100%", margin: "0 auto" }}>
         {MOODS.map(mood => (
           <button key={mood.id} onClick={() => selectMood(mood)} style={{ background: "#fff", border: "2.5px solid #1a1a1a", borderRadius: 10, padding: "14px 8px", cursor: "pointer", transition: "all 0.15s", boxShadow: "3px 3px 0px #1a1a1a", display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}
             onMouseEnter={e => { e.currentTarget.style.transform = "translate(-2px,-2px)"; e.currentTarget.style.boxShadow = "5px 5px 0px #1a1a1a"; e.currentTarget.style.background = mood.color + "22"; }}
@@ -448,7 +458,7 @@ return;
         ))}
       </div>
 
-      <SearchBar onSearch={handleSearch} loading={searchLoading} />
+      <SearchBar onSearch={handleSearch} loading={searchLoading} isMobile={isMobile} />
       {searchError && <div style={{ marginTop: 10, fontFamily: "monospace", fontSize: 10, color: "#c00", letterSpacing: 1 }}>⚠ {searchError}</div>}
       <div style={{ marginTop: 24, fontFamily: "monospace", fontSize: 8, color: "#ccc", letterSpacing: 2, textAlign: "center" }}>THEATRICAL RELEASES ONLY · TMDB + CLAUDE AI</div>
     </div>
@@ -466,9 +476,9 @@ return;
 
   // ── MOVIES ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f0e8", display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px 52px", backgroundImage: "radial-gradient(circle at 50% 0%,rgba(200,0,0,0.05) 0%,transparent 60%)" }}>
+    <div style={{ minHeight: "100vh", background: "#f5f0e8", display: "flex", flexDirection: "column", alignItems: "center", padding: isMobile ? "24px 16px 52px" : "40px 48px 80px", backgroundImage: "radial-gradient(circle at 50% 0%,rgba(200,0,0,0.05) 0%,transparent 60%)" }}>
       {/* Top bar */}
-      <div style={{ width: "100%", maxWidth: 700, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+      <div style={{ width: "100%", maxWidth: isMobile ? 700 : 1100, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
         <button onClick={() => { setScreen("mood"); setMovies([]); setReceiptKey(0); setPrinting(false); setPrintedSet(new Set()); setSavedLinesMap({}); }}
           style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, background: "none", border: "1.5px solid #1a1a1a", padding: "6px 12px", cursor: "pointer", borderRadius: 4, color: "#1a1a1a", transition: "all 0.15s" }}
           onMouseEnter={e => { e.currentTarget.style.background = "#1a1a1a"; e.currentTarget.style.color = "#fff"; }}
@@ -494,10 +504,10 @@ return;
       </div>
 
       {/* Cards + Printer */}
-      <div style={{ display: "flex", gap: 44, alignItems: "flex-start", justifyContent: "center", width: "100%", maxWidth: 700, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: isMobile ? 44 : 80, alignItems: "flex-start", justifyContent: "center", width: "100%", maxWidth: isMobile ? 700 : 1100, flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
-          <div style={{ position: "relative", width: 200, height: 300 }}>
-            {movies.map((m, i) => <MovieCard key={m.tmdb_id || m.title + i} movie={m} active={i === currentIndex} index={i} total={movies.length} />)}
+          <div style={{ position: "relative", width: isMobile ? 200 : 260, height: isMobile ? 300 : 390 }}>
+            {movies.map((m, i) => <MovieCard key={m.tmdb_id || m.title + i} movie={m} active={i === currentIndex} index={i} total={movies.length} isMobile={isMobile} />)}
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <button onClick={() => goToMovie(currentIndex - 1)} disabled={currentIndex === 0}
@@ -527,7 +537,7 @@ return;
 
       {/* Reason tag */}
       {cur && (
-        <div style={{ marginTop: 28, maxWidth: 440, textAlign: "center", opacity: fading ? 0 : 1, transition: "opacity 0.4s ease 0.15s" }}>
+        <div style={{ marginTop: 28, maxWidth: isMobile ? 440 : 700, textAlign: "center", opacity: fading ? 0 : 1, transition: "opacity 0.4s ease 0.15s" }}>
           <div style={{ background: "#FFD700", border: "2px solid #1a1a1a", padding: "10px 18px", borderRadius: 6, fontFamily: "monospace", fontSize: 10, letterSpacing: 0.5, boxShadow: "3px 3px 0px #1a1a1a", maxWidth: 380, lineHeight: 1.7, textAlign: "center" }}>
             💛 {cur.description || cur.reason}
           </div>
